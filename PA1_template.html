@@ -69,10 +69,10 @@ img {
 
 <div id="loading-and-preprocessing-the-data-change-date-values-to-be-true-dates-types" class="section level3">
 <h3>Loading and preprocessing the data (change date values to be true dates (types)):</h3>
-<pre class="r"><code>url &lt;- &quot;https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip&quot;
-file &lt;- &quot;activity.zip&quot;
-download.file(url, file)
-unzip(file)
+<pre class="r"><code># url &lt;- &quot;https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip&quot;
+# file &lt;- &quot;activity.zip&quot;
+# download.file(url, file)
+# unzip(file)
 dataFrame &lt;- read.csv(&quot;activity.csv&quot;)
 dataFrame$date &lt;- as.Date(as.character(dataFrame$date), &quot;%Y-%m-%d&quot;)
 str(dataFrame)</code></pre>
