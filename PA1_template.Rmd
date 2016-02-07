@@ -1,25 +1,83 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "Reproducible Research Assignment 1"
+author: "Cliff Bainter"
+date: "February 7, 2016"
+output: html_document
 ---
+###Loading and preprocessing the data (change date values to be true dates (types)):
+```{r echo=TRUE}
+url <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip"
+file <- "activity.zip"
+download.file(url, file)
+unzip(file)
+dataFrame <- read.csv("activity.csv")
+dataFrame$date <- as.Date(as.character(dataFrame$date), "%Y-%m-%d")
+str(dataFrame)
+head(dataFrame)
+summary(dataFrame)
+```
 
 
-## Loading and preprocessing the data
+###What is the mean number of steps taken per day (ignoring missing values)?
+We need to aggregate the steps by date (ignoring interval). The aggregate function ignores/removes NA values by default for the sum function.
+```{r}
+totalStepsPerDay <- aggregate(data=dataFrame, cbind(steps) ~ date, sum)
+meanSteps <- mean(totalStepsPerDay$steps)
+medianSteps <- median(totalStepsPerDay$steps)
+
+with(totalStepsPerDay, hist(steps, breaks=10, main="Histogram of total steps taken per day"))
+text(2000, 12, paste("Mean = ", round(meanSteps), "\n Median = ", round(medianSteps)))
+
+```
+
+###What is the average daily activity pattern?
+Now average across intervals
+```{r}
+avgStepsPerInterval <- aggregate(data=dataFrame, cbind(steps) ~ interval, mean)
+intervalWithMaxSteps <- avgStepsPerInterval[avgStepsPerInterval$steps == max(avgStepsPerInterval$steps),]$interval
+with(avgStepsPerInterval, plot(interval, steps, type="l", main="Average Number of Steps Taken per Interval (all days)", xlab="Interval (time of day)", ylab = "Avg. Steps"))
+abline(v=intervalWithMaxSteps, col="red")
+text(1700, 200, paste("Interval with Maximum average number of steps = ", intervalWithMaxSteps), cex=.8)
+```
+
+###Impute missing values in the original data set
+Using the mean values of the intervals w/NA's removed from prior question
+```{r}
+dataFrameWithImputedValues <- data.frame(dataFrame)
+rows<-subset(dataFrameWithImputedValues[is.na(dataFrameWithImputedValues$steps),], select=date:interval)
+rowsUpdated <- merge(rows, avgStepsPerInterval)
+for (row in 1:nrow(rowsUpdated)) {
+  interval= rowsUpdated[row, 1]
+  avgSteps = rowsUpdated[row, 3]
+  date = rowsUpdated[row, 2]
+  dataFrameWithImputedValues[dataFrameWithImputedValues$date==date &                               dataFrameWithImputedValues$interval==interval,]$steps=avgSteps
+}
+## roll up total steps by day with missing values imputed
+totalStepsPerDayImputed <- 
+  aggregate(data=dataFrameWithImputedValues, cbind(steps) ~ date, sum)
+meanStepsImputed <- mean(totalStepsPerDayImputed$steps)
+medianStepsImputed <- median(totalStepsPerDayImputed$steps)
+with(totalStepsPerDayImputed, hist(steps, breaks=10, main="Histogram of total steps taken per day with NA's updated"))
+text(4500, 20,paste("Number of missing values = ", round(length(rows$interval)), "\n Mean = ", round(meanStepsImputed), "\n Median = ", round(medianStepsImputed), "\n Effect of adding imputed values\n based on mean of steps for intervals \nw/o NA's seems to keep the mean and median \nthe same as for the original data set"), cex=0.7)
+
+```
+
+###Compare the differences between weekdays and weekends.
+Are there differences (using the dataset with the imputed values)
+``` {r}
+## add computed factor column indicating if date is weekend
+dataFrameWithImputedValues$isWeekend <- ifelse(weekdays(dataFrameWithImputedValues$date) %in% c("Saturday", "Sunday"), TRUE, FALSE)
+avgStepsPerIntervalImputedWeekdays <- aggregate(data=dataFrameWithImputedValues[dataFrameWithImputedValues$isWeekend==FALSE,], cbind(steps) ~ interval, mean)
+
+avgStepsPerIntervalImputedWeekends <- aggregate(data=dataFrameWithImputedValues[dataFrameWithImputedValues$isWeekend==TRUE,], cbind(steps) ~ interval, mean)
 
 
 
-## What is mean total number of steps taken per day?
+## setup two-panel plot
+par(mfrow=c(2,1), mar=c(2,2,2,2))
+with(avgStepsPerIntervalImputedWeekdays, plot(interval, steps, type="l", main="Weekdays"))
+with(avgStepsPerIntervalImputedWeekends, plot(interval, steps, type="l", main="Weekends"))
+mtext("Steps", side=2, padj=2, outer=TRUE)
+mtext("Interval", side=1, padj=-2, outer=TRUE)
 
-
-
-## What is the average daily activity pattern?
-
-
-
-## Imputing missing values
-
-
-
-## Are there differences in activity patterns between weekdays and weekends?
+```
